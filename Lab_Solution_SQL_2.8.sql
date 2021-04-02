@@ -86,31 +86,44 @@ WHERE (f.title = 'ACADEMY DINOSAUR') AND (i.store_id = '1') AND (return_date IS 
 -- The film is available for rent from Store 1. Checking for both stores, it is not available for store 2.
 
 
-# 7. Get all pairs of actors that worked together.
-SELECT  first_name, last_name, fa.film_id
-FROM sakila.actor a
-RIGHT JOIN sakila.film_actor fa
-USING(actor_id);
+# 7. Get all pairs of actors that worked together. Do self-join.
+SELECT a.actor_id, a2.actor_id, at.first_name, at.last_name, at2.first_name, at2.last_name,  COUNT(DISTINCT film_id)
+FROM sakila.film_actor a
+JOIN sakila.film_actor a2
+USING (film_id)
+JOIN sakila.actor at
+ON a.actor_id = at.actor_id
+JOIN sakila.actor at2
+ON a2.actor_id = at2.actor_id
+WHERE a.actor_id <> a2.actor_id
+GROUP BY a.actor_id, a2.actor_id;
+
 
 # 8. Get all pairs of customers that have rented the same film more than 3 times.
-SELECT customer_id, first_name, last_name, film_id
-FROM sakila.customer c
-RIGHT JOIN sakila.rental  r
-USING (customer_id)
-RIGHT JOIN sakila.inventory i
-USING (inventory_id);
+SELECT c1.customer_id, c2.customer_id, COUNT(*) AS num_films
+FROM sakila.customer c1
+JOIN sakila.customer c2
+USING (store_id)
+JOIN sakila.rental r
+ON c1.customer_id = r.customer_id
+JOIN sakila.inventory i
+USING (inventory_id)
+JOIN sakila.film f
+USING (film_id)
+WHERE c1.customer_id <> c2.customer_id
+GROUP BY c1.customer_id, c2.customer_id
+HAVING COUNT(*) > 3;
 
+
+USE sakila;
 
 # 9. For each film, list actor that has acted in more films.
-SELECT fa.film_id, actor_id, a.first_name, a.last_name
-FROM sakila.film_actor fa
-RIGHT JOIN sakila.actor a
-USING (actor_id)
-ORDER BY actor_id;
-
-SELECT a1.film_id, a2.actor_id
-FROM sakila.film_actor a1
-JOIN sakila.film_actor a2
-ON (a1.actor_id = a2.actor_id) AND (a1.film_id <> a2.film_id)
-ORDER BY a1.film_id ASC;
+SELECT DISTINCT (f.film_id), fa.actor_id, COUNT(fa.film_id) as num_films
+FROM sakila.film f
+JOIN sakila.film_actor fa
+ON f.film_id = fa.film_id
+JOIN sakila.film f2
+WHERE f.film_id <> f2.film_id
+GROUP BY f.film_id, fa.actor_id
+HAVING num_films > 1;
 
